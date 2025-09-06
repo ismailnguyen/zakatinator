@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Plus, Search, Filter, Wallet, Coins, DollarSign, Smartphone, Building, Gem } from "lucide-react";
+import { Plus, Search, Filter, Wallet, Coins, DollarSign, Smartphone, Building, Gem, Archive, Edit2, RotateCcw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InventoryItem, AssetType } from "@/types/zakat";
+import { AddAssetDialog } from "@/components/AddAssetDialog";
+import { EditAssetDialog } from "@/components/EditAssetDialog";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 // Mock inventory data
@@ -93,16 +96,60 @@ const assetTypeConfig: Record<AssetType, { icon: any; label: string; color: stri
 };
 
 export function Inventory() {
+  const { toast } = useToast();
   const [items, setItems] = useState<InventoryItem[]>(mockInventory);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
+  const [showArchived, setShowArchived] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.notes.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || item.type === filterType;
-    return matchesSearch && matchesType && !item.archived;
+    const matchesArchived = showArchived ? item.archived : !item.archived;
+    return matchesSearch && matchesType && matchesArchived;
   });
+
+  const handleAddAsset = (newItemData: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newItem: InventoryItem = {
+      ...newItemData,
+      id: Date.now().toString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    
+    setItems(prev => [...prev, newItem]);
+  };
+
+  const handleEditAsset = (item: InventoryItem) => {
+    setEditingItem(item);
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = (updatedItem: InventoryItem) => {
+    setItems(prev => prev.map(item => 
+      item.id === updatedItem.id ? updatedItem : item
+    ));
+  };
+
+  const handleArchiveAsset = (id: string) => {
+    const item = items.find(i => i.id === id);
+    if (!item) return;
+
+    setItems(prev => prev.map(item => 
+      item.id === id 
+        ? { ...item, archived: !item.archived, updatedAt: new Date().toISOString() }
+        : item
+    ));
+
+    toast({
+      title: item.archived ? "Asset Restored" : "Asset Archived",
+      description: `${item.label} has been ${item.archived ? 'restored' : 'archived'}.`,
+    });
+  };
 
   const formatValue = (item: InventoryItem): string => {
     if (item.type === 'CRYPTO' && item.quantity && item.pricePerToken) {
@@ -138,10 +185,23 @@ export function Inventory() {
             Manage your zakatable assets and wealth
           </p>
         </div>
-        <Button className="bg-gradient-primary hover:bg-primary">
-          <Plus className="w-4 h-4 mr-2" />
-          Add Asset
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline"
+            onClick={() => setShowArchived(!showArchived)}
+            className={showArchived ? "bg-muted" : ""}
+          >
+            <Archive className="w-4 h-4 mr-2" />
+            {showArchived ? 'Hide Archived' : 'Show Archived'}
+          </Button>
+          <Button 
+            className="bg-gradient-primary hover:bg-primary"
+            onClick={() => setAddDialogOpen(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Asset
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -227,6 +287,9 @@ export function Inventory() {
               <SelectItem value="GOLD">Gold</SelectItem>
               <SelectItem value="SILVER">Silver</SelectItem>
               <SelectItem value="JEWELRY">Jewelry</SelectItem>
+              <SelectItem value="ASSURANCE_VIE">Life Insurance</SelectItem>
+              <SelectItem value="LOAN_RECEIVABLE">Loan Receivable</SelectItem>
+              <SelectItem value="OTHER">Other</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -272,11 +335,31 @@ export function Inventory() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleEditAsset(item)}
+                  >
+                    <Edit2 className="w-3 h-3 mr-1" />
                     Edit
                   </Button>
-                  <Button variant="outline" size="sm">
-                    Archive
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleArchiveAsset(item.id)}
+                    className={item.archived ? "text-success hover:text-success" : "text-muted-foreground"}
+                  >
+                    {item.archived ? (
+                      <>
+                        <RotateCcw className="w-3 h-3 mr-1" />
+                        Restore
+                      </>
+                    ) : (
+                      <>
+                        <Archive className="w-3 h-3 mr-1" />
+                        Archive
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>
@@ -287,20 +370,49 @@ export function Inventory() {
 
       {filteredItems.length === 0 && (
         <Card className="p-12 text-center shadow-card">
-          <Wallet className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">No assets found</h3>
+          {showArchived ? (
+            <Archive className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+          ) : (
+            <Wallet className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+          )}
+          <h3 className="text-lg font-semibold text-foreground mb-2">
+            {showArchived ? 'No archived assets' : 'No assets found'}
+          </h3>
           <p className="text-muted-foreground mb-4">
-            {searchTerm || filterType !== 'all' 
-              ? 'Try adjusting your search or filters'
-              : 'Start by adding your first asset to calculate Zakat'
-            }
+            {showArchived ? (
+              'No assets have been archived yet'
+            ) : searchTerm || filterType !== 'all' ? (
+              'Try adjusting your search or filters'
+            ) : (
+              'Start by adding your first asset to calculate Zakat'
+            )}
           </p>
-          <Button className="bg-gradient-primary hover:bg-primary">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Your First Asset
-          </Button>
+          {!showArchived && (
+            <Button 
+              className="bg-gradient-primary hover:bg-primary"
+              onClick={() => setAddDialogOpen(true)}
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Your First Asset
+            </Button>
+          )}
         </Card>
       )}
+
+      {/* Add Asset Dialog */}
+      <AddAssetDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        onAdd={handleAddAsset}
+      />
+
+      {/* Edit Asset Dialog */}
+      <EditAssetDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        item={editingItem}
+        onSave={handleSaveEdit}
+      />
     </div>
   );
 }
