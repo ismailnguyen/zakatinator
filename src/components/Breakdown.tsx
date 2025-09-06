@@ -1,11 +1,15 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp, MinusCircle, Calculator, Coins, Gem, DollarSign, Building, Wallet, CheckCircle } from "lucide-react";
-import { ZakatCalculator } from "@/lib/zakat-calculator";
-import { AssetType, CalculationResult, DeductionItem, InventoryItem, ZakatSettings } from "@/types/zakat";
+import { TrendingUp, MinusCircle, Calculator, Coins, Gem, DollarSign, Building, Wallet, CheckCircle, FileText, Check } from "lucide-react";
+import { AssetType, CalculationResult } from "@/types/zakat";
+import { useToast } from "@/hooks/use-toast";
+import { getCurrentCalculationSnapshot, saveCurrentCalculation } from "@/lib/calculation-source";
+import { buildPrintableHtml } from "@/lib/print";
+import { addPayment } from "@/lib/history";
 
 const assetTypeLabels: Record<AssetType, string> = {
   CASH: 'Cash',
@@ -40,48 +44,13 @@ const typeIcon: Partial<Record<AssetType, any>> = {
 };
 
 export function Breakdown() {
-  // Mock inputs for demonstration. In a full app, read user data.
-  const settings: ZakatSettings = {
-    baseCurrency: 'EUR',
-    calendar: 'HIJRI',
-    anchorDate: { gregorian: '2024-03-20' },
-    nisabMode: 'GOLD',
-    fiqh: {
-      includeMinorsCash: true,
-      jewelryPolicy: 'INCLUDE_METAL',
-      includePersonalGoldContent: false,
-    },
-    rounding: 2,
-  };
-
-  const inventory: InventoryItem[] = [
-    { id: '1', label: 'Checking (BNP Paribas)', type: 'CASH', ownership: 'SELF', currency: 'EUR', amount: 15420.5, archived: false, notes: '', createdAt: '', updatedAt: '' },
-    { id: '2', label: 'PEA Portfolio', type: 'PEA', ownership: 'SELF', currency: 'EUR', amount: 45680, archived: false, notes: '', createdAt: '', updatedAt: '' },
-    { id: '3', label: 'Bitcoin', type: 'CRYPTO', ownership: 'SELF', token: 'BTC', quantity: 0.5, pricePerToken: 65000, currency: 'USD', archived: false, notes: '', createdAt: '', updatedAt: '' },
-    { id: '4', label: 'Gold bar 100g', type: 'GOLD', ownership: 'SELF', metal: 'GOLD', weightG: 100, purity: 0.9999, archived: false, notes: '', createdAt: '', updatedAt: '' },
-    { id: '5', label: "Spouse's ring", type: 'JEWELRY', ownership: 'SPOUSE', metal: 'GOLD', weightG: 8, purity: 0.75, archived: false, notes: 'Personal use', createdAt: '', updatedAt: '' },
-  ];
-
-  const deductions: DeductionItem[] = [
-    { id: 'd1', label: 'Credit card bill (due)', currency: 'EUR', amount: 1200, notes: '', createdAt: '', updatedAt: '' },
-  ];
-
-  const exchangeRates = {
-    'USD_EUR': 0.92,
-  } as Record<string, number>;
-
-  const metalPrices = {
-    goldPerGram: 60, // EUR
-    silverPerGram: 0.7, // EUR
-    lastUpdated: new Date().toISOString(),
-  };
-
-  const result = useMemo<Omit<CalculationResult, 'id' | 'timestamp'>>(() => {
-    return ZakatCalculator.calculate(inventory, deductions, settings, exchangeRates, metalPrices);
-  }, [inventory, deductions, settings, exchangeRates, metalPrices]);
+  const { toast } = useToast();
+  const result = useMemo<Omit<CalculationResult, 'id' | 'timestamp'>>(() => getCurrentCalculationSnapshot(), []);
+  const calcIdRef = useRef<string>(`calc_${Date.now()}`);
+  const [isPaid, setIsPaid] = useState(false);
 
   const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('fr-FR', { style: 'currency', currency: settings.baseCurrency }).format(amount);
+    new Intl.NumberFormat('fr-FR', { style: 'currency', currency: result.settings.baseCurrency }).format(amount);
 
   const byType = Object.entries(result.breakdown.byType).sort((a, b) => b[1] - a[1]) as [AssetType, number][];
 
@@ -237,11 +206,11 @@ export function Breakdown() {
       {/* Deductions List */}
       <Card className="p-6 shadow-card">
         <h2 className="text-lg font-semibold text-foreground mb-2">Deductions</h2>
-        {deductions.length === 0 ? (
+        {result.deductions.length === 0 ? (
           <p className="text-sm text-muted-foreground">No deductions applied</p>
         ) : (
           <ul className="space-y-2">
-            {deductions.map((d) => (
+            {result.deductions.map((d) => (
               <li key={d.id} className="flex items-center justify-between">
                 <span className="text-foreground">{d.label}</span>
                 <span className="text-foreground font-medium">
@@ -253,10 +222,39 @@ export function Breakdown() {
         )}
       </Card>
 
+      {/* Actions */}
+      <Card className="p-6 shadow-card">
+        <h2 className="text-lg font-semibold text-foreground mb-4">Actions</h2>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Button variant="outline" className="justify-start" onClick={() => {
+            const calc = saveCurrentCalculation();
+            const html = buildPrintableHtml(calc);
+            const w = window.open("", "_blank");
+            if (!w) return;
+            w.document.open();
+            w.document.write(html);
+            w.document.close();
+            w.focus();
+            setTimeout(() => w.print(), 250);
+          }}>
+            <FileText className="w-4 h-4 mr-2" />
+            Export Calculation (PDF)
+          </Button>
+          <Button className="justify-start" onClick={() => {
+            const calc = saveCurrentCalculation();
+            addPayment({ calculationId: calc.id, amount: calc.zakatDue, currency: calc.settings.baseCurrency, notes: "Marked as paid from Breakdown" });
+            setIsPaid(true);
+            toast({ title: "Payment recorded", description: "Zakat marked as paid and saved to history." });
+          }} disabled={isPaid || result.zakatDue <= 0}>
+            <Check className="w-4 h-4 mr-2" />
+            {isPaid ? 'Marked as Paid' : 'Mark as Paid'}
+          </Button>
+        </div>
+      </Card>
+
       <p className="text-xs text-muted-foreground">
         For educational use. Always consult qualified scholars for fiqh guidance.
       </p>
     </div>
   );
 }
-

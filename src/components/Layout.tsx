@@ -1,11 +1,11 @@
 import { ReactNode } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { Calendar, Calculator, Settings, TrendingUp, Wallet } from "lucide-react";
+import { Calendar, Calculator, Settings, TrendingUp, Wallet, FileText } from "lucide-react";
 
 interface LayoutProps {
   children: ReactNode;
-  currentPage?: 'dashboard' | 'inventory' | 'settings' | 'breakdown';
+  currentPage?: 'dashboard' | 'inventory' | 'settings' | 'breakdown' | 'history';
 }
 
 const navigation = [
@@ -13,6 +13,7 @@ const navigation = [
   { name: 'Inventory', icon: Wallet, page: 'inventory' as const, path: '/inventory' },
   { name: 'Settings', icon: Settings, page: 'settings' as const, path: '/settings' },
   { name: 'Breakdown', icon: Calculator, page: 'breakdown' as const, path: '/breakdown' },
+  { name: 'History', icon: FileText, page: 'history' as const, path: '/history' },
 ];
 
 export function Layout({ children, currentPage = 'dashboard' }: LayoutProps) {

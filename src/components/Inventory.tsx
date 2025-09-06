@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Search, Filter, Wallet, Coins, DollarSign, Smartphone, Building, Gem, Archive, Edit2, RotateCcw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InventoryItem, AssetType } from "@/types/zakat";
+import { getInventory as loadInventoryFromStore, setInventory as saveInventoryToStore } from "@/lib/store";
 import { AddAssetDialog } from "@/components/AddAssetDialog";
 import { EditAssetDialog } from "@/components/EditAssetDialog";
 import { useToast } from "@/hooks/use-toast";
@@ -97,7 +98,8 @@ const assetTypeConfig: Record<AssetType, { icon: any; label: string; color: stri
 
 export function Inventory() {
   const { toast } = useToast();
-  const [items, setItems] = useState<InventoryItem[]>(mockInventory);
+  const initial = loadInventoryFromStore();
+  const [items, setItems] = useState<InventoryItem[]>(initial.length ? initial : mockInventory);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [showArchived, setShowArchived] = useState(false);
@@ -128,6 +130,11 @@ export function Inventory() {
     setEditingItem(item);
     setEditDialogOpen(true);
   };
+
+  // Persist inventory to localStorage whenever it changes
+  useEffect(() => {
+    try { saveInventoryToStore(items); } catch (e) { /* ignore */ }
+  }, [items]);
 
   const handleSaveEdit = (updatedItem: InventoryItem) => {
     setItems(prev => prev.map(item => 

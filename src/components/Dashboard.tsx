@@ -3,36 +3,18 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useRef, useState } from "react";
-import { ensureCalculationSaved, addPayment } from "@/lib/history";
+import { useRef, useState, useMemo } from "react";
+import { addPayment } from "@/lib/history";
 import { useToast } from "@/hooks/use-toast";
 import { CalculationResult, AssetType } from "@/types/zakat";
-
-// Mock data for initial display
-const mockData = {
-  nextDueDate: {
-    hijri: "11 Muharram 1447",
-    gregorian: "July 18, 2025",
-    daysRemaining: 142
-  },
-  nisab: {
-    benchmark: "Gold (85g)",
-    amount: 5950.00,
-    currency: "EUR"
-  },
-  calculation: {
-    grossAssets: 125000.00,
-    deductions: 8400.00,
-    netAssets: 116600.00,
-    zakatDue: 2915.00,
-    status: "DUE" as const
-  }
-};
+import { getCurrentCalculationSnapshot, saveCurrentCalculation } from "@/lib/calculation-source";
+import { buildPrintableHtml } from "@/lib/print";
 
 export function Dashboard() {
   const { toast } = useToast();
   const calcIdRef = useRef<string>(`calc_${Date.now()}`);
   const [isPaid, setIsPaid] = useState(false);
+  const result = useMemo<Omit<CalculationResult, 'id' | 'timestamp'>>(() => getCurrentCalculationSnapshot(), []);
   const formatCurrency = (amount: number, currency = "EUR") => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -42,41 +24,12 @@ export function Dashboard() {
 
   const getCalcForActions = (): CalculationResult => {
     const nowIso = new Date().toISOString();
-    return {
-      id: calcIdRef.current,
-      timestamp: nowIso,
-      dueDate: {
-        gregorian: mockData.nextDueDate.gregorian,
-      },
-      settings: {
-        baseCurrency: 'EUR',
-        calendar: 'HIJRI',
-        anchorDate: { gregorian: nowIso.split('T')[0] },
-        nisabMode: 'GOLD',
-        fiqh: {
-          includeMinorsCash: true,
-          jewelryPolicy: 'INCLUDE_METAL',
-          includePersonalGoldContent: false,
-        },
-        rounding: 2,
-      },
-      inventory: [],
-      deductions: [],
-      exchangeRates: {},
-      metalPrices: { goldPerGram: 0, silverPerGram: 0, lastUpdated: nowIso },
-      grossAssets: mockData.calculation.grossAssets,
-      deductionsTotal: mockData.calculation.deductions,
-      netAssets: mockData.calculation.netAssets,
-      nisabValue: mockData.nisab.amount,
-      zakatDue: mockData.calculation.zakatDue,
-      breakdown: { byType: {} as Record<AssetType, number>, items: [] },
-      status: mockData.calculation.status,
-    };
+    const snap = getCurrentCalculationSnapshot();
+    return { id: calcIdRef.current, timestamp: nowIso, ...snap } as CalculationResult;
   };
 
   const exportAsPDF = () => {
-    const calc = getCalcForActions();
-    ensureCalculationSaved(calc);
+    const calc = saveCurrentCalculation();
     const html = buildPrintableHtml(calc);
     const w = window.open("", "_blank");
     if (!w) return;
@@ -88,8 +41,7 @@ export function Dashboard() {
   };
 
   const handleMarkAsPaid = () => {
-    const calc = getCalcForActions();
-    ensureCalculationSaved(calc);
+    const calc = saveCurrentCalculation();
     addPayment({ calculationId: calc.id, amount: calc.zakatDue, currency: calc.settings.baseCurrency, notes: "Marked as paid from Dashboard" });
     setIsPaid(true);
     toast({ title: "Payment recorded", description: "Zakat marked as paid and saved to history." });
@@ -116,15 +68,15 @@ export function Dashboard() {
               <span className="text-sm opacity-90">Next Zakat Due Date</span>
             </div>
             <h2 className="text-2xl font-bold mb-1">
-              {mockData.nextDueDate.hijri}
+              {result.dueDate?.gregorian}
             </h2>
             <p className="text-sm opacity-90">
-              {mockData.nextDueDate.gregorian}
+              {result.dueDate?.gregorian}
             </p>
           </div>
           <div className="text-right">
             <div className="text-3xl font-bold">
-              {mockData.nextDueDate.daysRemaining}
+              {result.dueDate?.daysRemaining}
             </div>
             <div className="text-sm opacity-90">days remaining</div>
           </div>
@@ -142,9 +94,9 @@ export function Dashboard() {
             <div>
               <p className="text-sm text-muted-foreground">Nisab</p>
               <p className="text-lg font-semibold text-foreground">
-                {formatCurrency(mockData.nisab.amount)}
+                {formatCurrency(result.nisabValue, result.settings.baseCurrency)}
               </p>
-              <p className="text-xs text-muted-foreground">{mockData.nisab.benchmark}</p>
+              <p className="text-xs text-muted-foreground">Nisab</p>
             </div>
           </div>
         </Card>
@@ -158,7 +110,7 @@ export function Dashboard() {
             <div>
               <p className="text-sm text-muted-foreground">Gross Assets</p>
               <p className="text-lg font-semibold text-foreground">
-                {formatCurrency(mockData.calculation.grossAssets)}
+                {formatCurrency(result.grossAssets, result.settings.baseCurrency)}
               </p>
             </div>
           </div>
@@ -173,10 +125,10 @@ export function Dashboard() {
             <div>
               <p className="text-sm text-muted-foreground">Net Assets</p>
               <p className="text-lg font-semibold text-foreground">
-                {formatCurrency(mockData.calculation.netAssets)}
+                {formatCurrency(result.netAssets, result.settings.baseCurrency)}
               </p>
               <p className="text-xs text-muted-foreground">
-                After deductions: {formatCurrency(mockData.calculation.deductions)}
+                After deductions: {formatCurrency(result.deductionsTotal, result.settings.baseCurrency)}
               </p>
             </div>
           </div>
@@ -191,7 +143,7 @@ export function Dashboard() {
             <div>
               <p className="text-sm text-muted-foreground">Zakat Due (2.5%)</p>
               <p className="text-xl font-bold text-success">
-                {formatCurrency(mockData.calculation.zakatDue)}
+                {formatCurrency(result.zakatDue, result.settings.baseCurrency)}
               </p>
             </div>
           </div>
@@ -209,7 +161,7 @@ export function Dashboard() {
             </div>
             <p className="text-sm font-medium text-foreground">Gross Assets</p>
             <p className="text-lg font-bold text-foreground">
-              {formatCurrency(mockData.calculation.grossAssets)}
+              {formatCurrency(result.grossAssets, result.settings.baseCurrency)}
             </p>
           </div>
           
@@ -221,7 +173,7 @@ export function Dashboard() {
             </div>
             <p className="text-sm font-medium text-foreground">Deductions</p>
             <p className="text-lg font-bold text-destructive">
-              {formatCurrency(mockData.calculation.deductions)}
+              {formatCurrency(result.deductionsTotal, result.settings.baseCurrency)}
             </p>
           </div>
           
@@ -233,7 +185,7 @@ export function Dashboard() {
             </div>
             <p className="text-sm font-medium text-foreground">Net Assets</p>
             <p className="text-lg font-bold text-foreground">
-              {formatCurrency(mockData.calculation.netAssets)}
+              {formatCurrency(result.netAssets, result.settings.baseCurrency)}
             </p>
           </div>
           
@@ -245,7 +197,7 @@ export function Dashboard() {
             </div>
             <p className="text-sm font-medium text-foreground">Zakat Due</p>
             <p className="text-lg font-bold text-success">
-              {formatCurrency(mockData.calculation.zakatDue)}
+              {formatCurrency(result.zakatDue, result.settings.baseCurrency)}
             </p>
           </div>
         </div>
@@ -256,15 +208,18 @@ export function Dashboard() {
         <Card className="p-6 shadow-card">
           <div className="flex items-center gap-3 mb-4">
             <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-              {mockData.calculation.status}
+              {result.status}
             </Badge>
             <span className="text-sm text-muted-foreground">
-              Above nisab threshold
+              {result.status === 'DUE' ? 'Above nisab threshold' : 'Below nisab threshold'}
             </span>
           </div>
           <p className="text-sm text-muted-foreground mb-4">
-            Your net assets exceed the nisab threshold of {formatCurrency(mockData.nisab.amount)}. 
-            Zakat is due on the calculated amount.
+            {result.status === 'DUE' ? (
+              <>Your net assets exceed the nisab threshold of {formatCurrency(result.nisabValue, result.settings.baseCurrency)}. Zakat is due on the calculated amount.</>
+            ) : (
+              <>Your net assets are below the current nisab value of {formatCurrency(result.nisabValue, result.settings.baseCurrency)}.</>
+            )}
           </p>
         </Card>
 
@@ -275,7 +230,7 @@ export function Dashboard() {
               <FileText className="w-4 h-4 mr-2" />
               Export Calculation (PDF)
             </Button>
-            <Button className="w-full justify-start" onClick={handleMarkAsPaid} disabled={isPaid || mockData.calculation.zakatDue <= 0}>
+            <Button className="w-full justify-start" onClick={handleMarkAsPaid} disabled={isPaid || result.zakatDue <= 0}>
               <Check className="w-4 h-4 mr-2" />
               {isPaid ? 'Marked as Paid' : 'Mark as Paid'}
             </Button>

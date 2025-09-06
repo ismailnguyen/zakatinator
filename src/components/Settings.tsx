@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Globe, Coins, Scale, Download, Upload, Shield } from "lucide-react";
 import { ZakatSettings, Currency, CalendarSystem, NisabMode } from "@/types/zakat";
+import { getSettings as loadSettingsFromStore, setSettings as saveSettingsToStore } from "@/lib/store";
 
 // Default settings
 const defaultSettings: ZakatSettings = {
@@ -39,7 +40,7 @@ const currencies: { value: Currency; label: string; symbol: string }[] = [
 ];
 
 export function Settings() {
-  const [settings, setSettings] = useState<ZakatSettings>(defaultSettings);
+  const [settings, setSettings] = useState<ZakatSettings>(loadSettingsFromStore() || defaultSettings);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const updateSetting = <K extends keyof ZakatSettings>(
@@ -62,8 +63,7 @@ export function Settings() {
   };
 
   const saveSettings = () => {
-    // In real app, save to localStorage or backend
-    console.log('Saving settings:', settings);
+    saveSettingsToStore(settings);
     setHasUnsavedChanges(false);
   };
 
