@@ -40,7 +40,7 @@ export function Layout({ children, currentPage = 'dashboard' }: LayoutProps) {
                 <Calendar className="w-5 h-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-lg font-semibold text-foreground">Zakat Calculator</h1>
+                <h1 className="text-lg font-semibold text-foreground">Zakatinator</h1>
                 <p className="text-xs text-muted-foreground">Privacy-first Islamic finance</p>
               </div>
             </div>
