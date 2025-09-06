@@ -32,7 +32,7 @@ export function Layout({ children, currentPage = 'dashboard' }: LayoutProps) {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       {/* Header */}
-      <header className="bg-card/80 backdrop-blur-md border-b border-border shadow-card sticky top-0 z-50">
+      <header className="bg-card backdrop-blur-xl border-b border-border shadow-card sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
