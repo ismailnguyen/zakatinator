@@ -7,9 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Globe, Coins, Scale, Download, Upload, Shield } from "lucide-react";
+import { Calendar, Globe, Coins, Scale, Shield } from "lucide-react";
 import { ZakatSettings, Currency, CalendarSystem, NisabMode } from "@/types/zakat";
 import { getSettings as loadSettingsFromStore, setSettings as saveSettingsToStore } from "@/lib/store";
+import { useToast } from "@/hooks/use-toast";
 
 // Default settings
 const defaultSettings: ZakatSettings = {
@@ -40,6 +41,7 @@ const currencies: { value: Currency; label: string; symbol: string }[] = [
 ];
 
 export function Settings() {
+  const { toast } = useToast();
   const [settings, setSettings] = useState<ZakatSettings>(loadSettingsFromStore() || defaultSettings);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -67,14 +69,23 @@ export function Settings() {
     setHasUnsavedChanges(false);
   };
 
-  const exportSettings = () => {
-    const dataStr = JSON.stringify(settings, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'zakat-settings.json';
-    link.click();
+  const clearAllData = () => {
+    const keys = [
+      'zakatinator-settings',
+      'zakatinator-inventory',
+      'zakatinator-deductions',
+      'zakatinator-exchange-rates',
+      'zakatinator-metal-prices',
+      'zakatinator-history',
+    ];
+    try {
+      keys.forEach(k => localStorage.removeItem(k));
+      setSettings(defaultSettings);
+      setHasUnsavedChanges(false);
+      toast({ title: 'All data cleared', description: 'Your local settings, inventory, and history have been removed.' });
+    } catch (e) {
+      toast({ title: 'Failed to clear data', description: 'Please try again or clear site data from your browser.', });
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -317,30 +328,20 @@ export function Settings() {
           </div>
         </Card>
 
-        {/* Backup & Security */}
+        {/* Data & Privacy */}
         <Card className="p-6 shadow-card lg:col-span-2">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
               <Shield className="w-5 h-5 text-accent-foreground" />
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-foreground">Backup & Security</h2>
-              <p className="text-sm text-muted-foreground">
-                Manage your data and privacy settings
-              </p>
+              <h2 className="text-xl font-semibold text-foreground">Data & Privacy</h2>
+              <p className="text-sm text-muted-foreground">Manage your local data</p>
             </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
-            <Button variant="outline" onClick={exportSettings} className="justify-start">
-              <Download className="w-4 h-4 mr-2" />
-              Export Settings
-            </Button>
-            <Button variant="outline" className="justify-start">
-              <Upload className="w-4 h-4 mr-2" />
-              Import Settings
-            </Button>
-            <Button variant="outline" className="justify-start">
+            <Button variant="destructive" className="justify-start" onClick={clearAllData}>
               <Shield className="w-4 h-4 mr-2" />
               Clear All Data
             </Button>
