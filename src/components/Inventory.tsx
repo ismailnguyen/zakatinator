@@ -11,6 +11,8 @@ import { AddAssetDialog } from "@/components/AddAssetDialog";
 import { EditAssetDialog } from "@/components/EditAssetDialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { getOnboardingPhase, setOnboardingPhase } from "@/lib/onboarding";
+import { useNavigate } from "react-router-dom";
 
 // Mock inventory data
 const mockInventory: InventoryItem[] = [
@@ -98,8 +100,10 @@ const assetTypeConfig: Record<AssetType, { icon: any; label: string; color: stri
 
 export function Inventory() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const onboardingPhase = getOnboardingPhase();
   const initial = loadInventoryFromStore();
-  const [items, setItems] = useState<InventoryItem[]>(initial.length ? initial : mockInventory);
+  const [items, setItems] = useState<InventoryItem[]>(initial);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [showArchived, setShowArchived] = useState(false);
@@ -184,6 +188,20 @@ export function Inventory() {
 
   return (
     <div className="space-y-8">
+      {onboardingPhase === 'inventory' && (
+        <Card className="p-4 shadow-card bg-card/70">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Add your assets</h2>
+              <p className="text-sm text-muted-foreground">Tell us what assets you have. Add as many as you like.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button className="bg-gradient-primary hover:bg-primary" onClick={() => setAddDialogOpen(true)}>Add Asset</Button>
+              <Button variant="outline" onClick={() => { setOnboardingPhase('dashboard'); navigate('/'); }}>Continue to Dashboard</Button>
+            </div>
+          </div>
+        </Card>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

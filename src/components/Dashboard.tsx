@@ -9,12 +9,14 @@ import { useToast } from "@/hooks/use-toast";
 import { CalculationResult, AssetType } from "@/types/zakat";
 import { getCurrentCalculationSnapshot, saveCurrentCalculation } from "@/lib/calculation-source";
 import { buildPrintableHtml } from "@/lib/print";
+import { getOnboardingPhase, setOnboardingPhase } from "@/lib/onboarding";
 
 export function Dashboard() {
   const { toast } = useToast();
   const calcIdRef = useRef<string>(`calc_${Date.now()}`);
   const [isPaid, setIsPaid] = useState(false);
   const result = useMemo<Omit<CalculationResult, 'id' | 'timestamp'>>(() => getCurrentCalculationSnapshot(), []);
+  const phase = getOnboardingPhase();
   const formatCurrency = (amount: number, currency = "EUR") => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -49,6 +51,17 @@ export function Dashboard() {
 
   return (
     <div className="space-y-8">
+      {phase === 'dashboard' && (
+        <Card className="p-4 shadow-card">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Welcome to your dashboard</h2>
+              <p className="text-sm text-muted-foreground">Here you can see your nisab, gross and net assets, and your zakat due. You can export a PDF or mark as paid.</p>
+            </div>
+            <Button onClick={() => setOnboardingPhase('done')}>Finish Tour</Button>
+          </div>
+        </Card>
+      )}
       {/* Welcome Header */}
       <div className="text-center">
         <h1 className="text-3xl font-bold text-foreground mb-2">

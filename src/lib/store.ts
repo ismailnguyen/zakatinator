@@ -37,13 +37,17 @@ const defaultMetalPrices: MetalPrices = {
   lastUpdated: new Date().toISOString(),
 };
 
-export function getSettings(): ZakatSettings {
+export function getSettings(): ZakatSettings | null {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    return raw ? (JSON.parse(raw) as ZakatSettings) : defaultSettings;
+    return raw ? (JSON.parse(raw) as ZakatSettings) : null;
   } catch {
-    return defaultSettings;
+    return null;
   }
+}
+
+export function getDefaultSettings(): ZakatSettings {
+  return defaultSettings;
 }
 
 export function setSettings(s: ZakatSettings) {
@@ -101,4 +105,3 @@ export function getMetalPrices(): MetalPrices {
 export function setMetalPrices(m: MetalPrices) {
   localStorage.setItem(METAL_PRICES_KEY, JSON.stringify(m));
 }
-

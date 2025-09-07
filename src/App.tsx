@@ -8,6 +8,7 @@ import InventoryPage from "./pages/InventoryPage";
 import SettingsPage from "./pages/SettingsPage";
 import BreakdownPage from "./pages/BreakdownPage";
 import NotFound from "./pages/NotFound";
+import WelcomePage from "./pages/WelcomePage";
 import HistoryPage from "./pages/HistoryPage";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/welcome" element={<WelcomePage />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/breakdown" element={<BreakdownPage />} />

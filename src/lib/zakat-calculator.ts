@@ -21,13 +21,37 @@ export class ZakatCalculator {
     exchangeRates: ExchangeRates
   ): number {
     if (fromCurrency === baseCurrency) return amount;
-    
-    const rate = exchangeRates[`${fromCurrency}_${baseCurrency}`];
-    if (!rate) {
-      throw new Error(`Exchange rate not found for ${fromCurrency} to ${baseCurrency}`);
+
+    // Direct pair
+    const direct = exchangeRates[`${fromCurrency}_${baseCurrency}`];
+    if (direct) return amount * direct;
+
+    // Inverse pair (base_to_from)
+    const inverse = exchangeRates[`${baseCurrency}_${fromCurrency}`];
+    if (inverse) return amount / inverse;
+
+    // Try via EUR as a common pivot
+    const PIVOT: Currency = 'EUR';
+    const toPivotDirect = exchangeRates[`${fromCurrency}_${PIVOT}`];
+    const toPivotInverse = exchangeRates[`${PIVOT}_${fromCurrency}`];
+    let amountInPivot: number | null = null;
+    if (fromCurrency === PIVOT) {
+      amountInPivot = amount;
+    } else if (toPivotDirect) {
+      amountInPivot = amount * toPivotDirect;
+    } else if (toPivotInverse) {
+      amountInPivot = amount / toPivotInverse;
     }
-    
-    return amount * rate;
+
+    if (amountInPivot != null) {
+      if (baseCurrency === PIVOT) return amountInPivot;
+      const fromPivotDirect = exchangeRates[`${PIVOT}_${baseCurrency}`];
+      const fromPivotInverse = exchangeRates[`${baseCurrency}_${PIVOT}`];
+      if (fromPivotDirect) return amountInPivot * fromPivotDirect;
+      if (fromPivotInverse) return amountInPivot / fromPivotInverse;
+    }
+
+    throw new Error(`Exchange rate not found for ${fromCurrency} to ${baseCurrency}`);
   }
 
   /**

@@ -1,10 +1,10 @@
 import { CalculationResult } from "@/types/zakat";
 import { ZakatCalculator } from "@/lib/zakat-calculator";
-import { getSettings, getInventory, getDeductions, getExchangeRates, getMetalPrices } from "@/lib/store";
+import { getSettings, getInventory, getDeductions, getExchangeRates, getMetalPrices, getDefaultSettings } from "@/lib/store";
 import { ensureCalculationSaved } from "@/lib/history";
 
 export function getCurrentCalculationSnapshot(): Omit<CalculationResult, 'id' | 'timestamp'> {
-  const settings = getSettings();
+  const settings = getSettings() || getDefaultSettings();
   const inventory = getInventory();
   const deductions = getDeductions();
   const exchangeRates = getExchangeRates();
@@ -23,4 +23,3 @@ export function saveCurrentCalculation(): CalculationResult {
   ensureCalculationSaved(calc);
   return calc;
 }
-
