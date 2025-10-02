@@ -31,7 +31,7 @@ export function Layout({ children, currentPage = 'dashboard' }: LayoutProps) {
 
   const activePage = getCurrentPage();
   return (
-    <div className="min-h-screen bg-gradient-subtle">
+    <div className="min-h-screen">
       {/* Header */}
       <header className="bg-card backdrop-blur-2xl border-b border-border shadow-card sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

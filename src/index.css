@@ -80,6 +80,11 @@ All colors MUST be HSL for proper theming.
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 0 0% 100% / 0.18;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Water background palette */
+    --water-foam: 196 82% 94%;
+    --water-glow: 194 78% 88%;
+    --water-depth: 192 70% 82%;
   }
 
   .dark {
@@ -118,6 +123,10 @@ All colors MUST be HSL for proper theming.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 0 0% 100% / 0.10;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --water-foam: 195 90% 36%;
+    --water-glow: 193 85% 28%;
+    --water-depth: 191 78% 20%;
   }
 }
 
@@ -128,5 +137,84 @@ All colors MUST be HSL for proper theming.
 
   body {
     @apply bg-background text-foreground;
+    position: relative;
+    z-index: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--water-foam) / 0.92) 0%,
+      hsl(var(--water-glow) / 0.9) 50%,
+      hsl(var(--water-depth) / 0.95) 100%
+    );
+  }
+
+  .dark body {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--water-depth) / 0.65) 0%,
+      hsl(var(--water-glow) / 0.45) 60%,
+      hsl(var(--background)) 110%
+    );
+  }
+
+  body::before,
+  body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  body::before {
+    z-index: -2;
+    background:
+      radial-gradient(circle at 20% 20%, hsl(var(--water-foam) / 0.45), transparent 55%),
+      radial-gradient(circle at 80% 15%, hsl(var(--secondary) / 0.18), transparent 50%),
+      radial-gradient(circle at 50% 85%, hsl(var(--water-glow) / 0.35), transparent 60%);
+    animation: waterDrift 26s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+
+  body::after {
+    z-index: -1;
+    background:
+      repeating-radial-gradient(circle at 50% 50%, hsl(var(--water-foam) / 0.12) 0 2px, transparent 6px),
+      radial-gradient(circle at 30% 70%, hsl(var(--water-glow) / 0.2), transparent 50%),
+      radial-gradient(circle at 70% 40%, hsl(var(--water-depth) / 0.22), transparent 55%);
+    mix-blend-mode: screen;
+    opacity: 0.6;
+    animation: waterSurface 14s linear infinite;
+    background-size: 140% 140%, 160% 160%, 180% 180%;
+    will-change: background-position;
+  }
+
+  .dark body::after {
+    mix-blend-mode: lighten;
+    opacity: 0.4;
+  }
+}
+
+@keyframes waterSurface {
+  0% {
+    background-position: 0 0, 20% 30%, 60% 70%;
+  }
+  50% {
+    background-position: 12% 18%, 25% 35%, 56% 65%;
+  }
+  100% {
+    background-position: 0 0, 18% 40%, 62% 80%;
+  }
+}
+
+@keyframes waterDrift {
+  0% {
+    transform: translate3d(-2%, -1%, 0) scale(1.01);
+  }
+  50% {
+    transform: translate3d(2.5%, 2%, 0) scale(1.03);
+  }
+  100% {
+    transform: translate3d(-1.5%, 1.5%, 0) scale(1.01);
   }
 }
