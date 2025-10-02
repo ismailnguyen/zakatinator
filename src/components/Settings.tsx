@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import {
   refreshExchangeRates,
   refreshMetalPrices,
   getExchangeRatesLastUpdated,
+  getMetalPrices,
   getMetalPricesLastUpdated,
 } from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
@@ -55,6 +56,10 @@ export function Settings() {
   const [isRefreshingMetals, setIsRefreshingMetals] = useState(false);
   const [exchangeRatesUpdatedAt, setExchangeRatesUpdatedAt] = useState<string | null>(() => getExchangeRatesLastUpdated(settings.baseCurrency));
   const [metalPricesUpdatedAt, setMetalPricesUpdatedAt] = useState<string | null>(() => getMetalPricesLastUpdated(settings.baseCurrency));
+  const [metalPrices, setMetalPrices] = useState(() => getMetalPrices());
+  const [manualNisabInput, setManualNisabInput] = useState(() =>
+    settings.nisabManualAmount != null ? settings.nisabManualAmount.toString() : ''
+  );
 
   const updateSetting = <K extends keyof ZakatSettings>(
     key: K,
@@ -69,6 +74,45 @@ export function Settings() {
       setMetalPricesUpdatedAt(getMetalPricesLastUpdated(nextBase));
     }
   };
+
+  useEffect(() => {
+    setManualNisabInput(settings.nisabManualAmount != null ? settings.nisabManualAmount.toString() : '');
+  }, [settings.nisabManualAmount]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const syncMarketData = async () => {
+      setExchangeRatesUpdatedAt(getExchangeRatesLastUpdated(settings.baseCurrency));
+      setMetalPrices(getMetalPrices());
+      setMetalPricesUpdatedAt(getMetalPricesLastUpdated(settings.baseCurrency));
+
+      try {
+        await refreshExchangeRates({ baseCurrency: settings.baseCurrency, force: false });
+        if (!cancelled) {
+          setExchangeRatesUpdatedAt(getExchangeRatesLastUpdated(settings.baseCurrency));
+        }
+      } catch (error) {
+        console.error('Failed to refresh exchange rates for nisab', error);
+      }
+
+      try {
+        const latest = await refreshMetalPrices({ baseCurrency: settings.baseCurrency, force: false });
+        if (!cancelled) {
+          setMetalPrices(latest);
+          setMetalPricesUpdatedAt(latest.lastUpdated);
+        }
+      } catch (error) {
+        console.error('Failed to refresh metal prices for nisab', error);
+      }
+    };
+
+    syncMarketData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [settings.baseCurrency]);
 
   const updateFiqhSetting = <K extends keyof ZakatSettings['fiqh']>(
     key: K,
@@ -103,9 +147,26 @@ export function Settings() {
       setHasUnsavedChanges(false);
       setExchangeRatesUpdatedAt(null);
       setMetalPricesUpdatedAt(null);
+      setMetalPrices(getMetalPrices());
       toast({ title: 'All data cleared', description: 'Your local settings, inventory, and history have been removed.' });
     } catch (e) {
       toast({ title: 'Failed to clear data', description: 'Please try again or clear site data from your browser.', });
+    }
+  };
+
+  const handleManualNisabInputChange = (value: string) => {
+    setManualNisabInput(value);
+
+    if (value.trim() === '') {
+      setSettings(prev => ({ ...prev, nisabManualAmount: undefined }));
+      setHasUnsavedChanges(true);
+      return;
+    }
+
+    const parsed = Number(value);
+    if (!Number.isNaN(parsed)) {
+      setSettings(prev => ({ ...prev, nisabManualAmount: parsed }));
+      setHasUnsavedChanges(true);
     }
   };
 
@@ -128,6 +189,7 @@ export function Settings() {
     setIsRefreshingMetals(true);
     try {
       const latest = await refreshMetalPrices({ force: true, baseCurrency: settings.baseCurrency });
+      setMetalPrices(latest);
       setMetalPricesUpdatedAt(latest.lastUpdated);
       toast({ title: 'Metal prices updated', description: 'Gold and silver prices refreshed using the latest market data.' });
     } catch (error) {
@@ -151,6 +213,40 @@ export function Settings() {
       currency: settings.baseCurrency
     }).format(amount);
   };
+
+  const goldNisab = useMemo(() => metalPrices.goldPerGram * 85, [metalPrices.goldPerGram]);
+  const silverNisab = useMemo(() => metalPrices.silverPerGram * 595, [metalPrices.silverPerGram]);
+  const manualNisab = settings.nisabManualAmount ?? NaN;
+
+  const nisabValue = useMemo(() => {
+    switch (settings.nisabMode) {
+      case 'GOLD':
+        return goldNisab;
+      case 'SILVER':
+        return silverNisab;
+      case 'MANUAL':
+        return manualNisab;
+      default:
+        return goldNisab;
+    }
+  }, [settings.nisabMode, goldNisab, silverNisab, manualNisab]);
+
+  const formatOrDash = (value: number) => (
+    Number.isFinite(value) ? formatCurrency(value) : '—'
+  );
+
+  const nisabDescriptor = useMemo(() => {
+    switch (settings.nisabMode) {
+      case 'GOLD':
+        return 'Gold (85 grams)';
+      case 'SILVER':
+        return 'Silver (595 grams)';
+      case 'MANUAL':
+        return 'Manual amount';
+      default:
+        return '';
+    }
+  }, [settings.nisabMode]);
 
   return (
     <div className="space-y-8">
@@ -248,8 +344,30 @@ export function Settings() {
                   <SelectItem value="MANUAL">Manual Override</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground mt-1">
-                Current nisab: {formatCurrency(5950)} (mock value)
+              {settings.nisabMode === 'MANUAL' && (
+                <div className="mt-3 space-y-2">
+                  <Label htmlFor="nisabManualAmount" className="text-xs text-foreground">
+                    Manual Nisab Amount ({settings.baseCurrency})
+                  </Label>
+                  <Input
+                    id="nisabManualAmount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={manualNisabInput}
+                    onChange={(e) => handleManualNisabInputChange(e.target.value)}
+                    placeholder={`Enter amount in ${settings.baseCurrency}`}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This value overrides the automatically calculated nisab.
+                  </p>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-3">
+                Current nisab ({nisabDescriptor}): {formatOrDash(nisabValue)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Gold 85g: {formatOrDash(goldNisab)} • Silver 595g: {formatOrDash(silverNisab)}
               </p>
             </div>
           </div>
