@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Plus, Search, Filter, Wallet, Coins, DollarSign, Smartphone, Building, Gem, Archive, Edit2, RotateCcw } from "lucide-react";
+import { Plus, Search, Filter, Wallet, Coins, DollarSign, Smartphone, Building, Gem, Archive, Edit2, RotateCcw, MinusCircle, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { InventoryItem, AssetType } from "@/types/zakat";
+import { InventoryItem, AssetType, DeductionItem } from "@/types/zakat";
 import {
   getInventory as loadInventoryFromStore,
   setInventory as saveInventoryToStore,
@@ -14,8 +14,10 @@ import {
   getExchangeRates,
   getMetalPrices,
   getDeductions,
+  setDeductions,
 } from "@/lib/store";
 import { AddAssetDialog } from "@/components/AddAssetDialog";
+import { AddDeductionDialog } from "@/components/AddDeductionDialog";
 import { EditAssetDialog } from "@/components/EditAssetDialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -49,8 +51,10 @@ export function Inventory() {
   const [filterType, setFilterType] = useState<string>('all');
   const [showArchived, setShowArchived] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [addDeductionOpen, setAddDeductionOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [deductionItems, setDeductionItems] = useState<DeductionItem[]>(() => getDeductions());
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,7 +67,6 @@ export function Inventory() {
   const currentSettings = getSettings() || getDefaultSettings();
   const exchangeRates = getExchangeRates();
   const metalPrices = getMetalPrices();
-  const deductions = getDeductions();
 
   const handleAddAsset = (newItemData: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newItem: InventoryItem = {
@@ -85,6 +88,11 @@ export function Inventory() {
   useEffect(() => {
     try { saveInventoryToStore(items); } catch (e) { /* ignore */ }
   }, [items]);
+
+  // Persist deductions to localStorage whenever they change
+  useEffect(() => {
+    try { setDeductions(deductionItems); } catch (e) { /* ignore */ }
+  }, [deductionItems]);
 
   const handleSaveEdit = (updatedItem: InventoryItem) => {
     setItems(prev => prev.map(item => 
@@ -126,7 +134,7 @@ export function Inventory() {
     try {
       const calculation = ZakatCalculator.calculate(
         items,
-        deductions,
+        deductionItems,
         currentSettings,
         exchangeRates,
         metalPrices
@@ -145,6 +153,40 @@ export function Inventory() {
       console.error('Failed to calculate inventory total', error);
       return '—';
     }
+  };
+
+  const getDeductionsTotal = (): string => {
+    try {
+      const calculation = ZakatCalculator.calculate(
+        items,
+        deductionItems,
+        currentSettings,
+        exchangeRates,
+        metalPrices
+      );
+
+      return new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: currentSettings.baseCurrency
+      }).format(calculation.deductionsTotal);
+    } catch (error) {
+      console.error('Failed to calculate deductions total', error);
+      return '—';
+    }
+  };
+
+  const handleRemoveDeduction = (id: string) => {
+    setDeductionItems(prev => {
+      const toRemove = prev.find(item => item.id === id);
+      const next = prev.filter(item => item.id !== id);
+      if (toRemove) {
+        toast({
+          title: "Deduction removed",
+          description: `${toRemove.label} has been removed from deductions.`,
+        });
+      }
+      return next;
+    });
   };
 
   return (
@@ -180,6 +222,13 @@ export function Inventory() {
             <Archive className="w-4 h-4 mr-2" />
             {showArchived ? 'Hide Archived' : 'Show Archived'}
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => setAddDeductionOpen(true)}
+          >
+            <MinusCircle className="w-4 h-4 mr-2" />
+            Add Deduction
+          </Button>
           <Button 
             className="bg-gradient-primary hover:bg-primary"
             onClick={() => setAddDialogOpen(true)}
@@ -191,7 +240,7 @@ export function Inventory() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-5">
         <Card className="p-4 shadow-card">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -212,6 +261,18 @@ export function Inventory() {
             <div>
               <p className="text-sm text-muted-foreground">Est. {currentSettings.baseCurrency} Value</p>
               <p className="text-xl font-semibold text-foreground">{getTotalValue()}</p>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-4 shadow-card">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-destructive/10 rounded-lg flex items-center justify-center">
+              <MinusCircle className="w-4 h-4 text-destructive" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Total Deductions</p>
+              <p className="text-xl font-semibold text-foreground">{getDeductionsTotal()}</p>
             </div>
           </div>
         </Card>
@@ -278,6 +339,77 @@ export function Inventory() {
               <SelectItem value="OTHER">Other</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+      </Card>
+
+      {/* Deductions List */}
+      <Card className="p-6 shadow-card">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">Deductions</h2>
+            <p className="text-sm text-muted-foreground">
+              Liabilities and short-term debts deducted from your zakatable assets
+            </p>
+          </div>
+          <Badge variant="outline">{deductionItems.length}</Badge>
+        </div>
+
+        <div className="space-y-3">
+          {deductionItems.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              No deductions recorded yet. Add outstanding liabilities to refine your net assets.
+            </p>
+          )}
+
+          {deductionItems.map((deduction) => {
+            const formattedAmount = new Intl.NumberFormat('fr-FR', {
+              style: 'currency',
+              currency: deduction.currency,
+            }).format(deduction.amount);
+
+            let formattedDueDate: string | null = null;
+            if (deduction.dueDate) {
+              const parsed = new Date(deduction.dueDate);
+              formattedDueDate = Number.isNaN(parsed.getTime())
+                ? deduction.dueDate
+                : parsed.toLocaleDateString();
+            }
+
+            return (
+              <div
+                key={deduction.id}
+                className="flex flex-col gap-2 rounded-lg border border-border/60 p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="font-medium text-foreground">{deduction.label}</p>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <span>{formattedAmount}</span>
+                    {formattedDueDate && (
+                      <>
+                        <span>•</span>
+                        <span>Due {formattedDueDate}</span>
+                      </>
+                    )}
+                    {deduction.notes && (
+                      <>
+                        <span>•</span>
+                        <span>{deduction.notes}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveDeduction(deduction.id)}
+                  aria-label={`Remove ${deduction.label}`}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            );
+          })}
         </div>
       </Card>
 
@@ -390,6 +522,21 @@ export function Inventory() {
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         onAdd={handleAddAsset}
+      />
+
+      <AddDeductionDialog
+        open={addDeductionOpen}
+        onOpenChange={setAddDeductionOpen}
+        onAdd={(deduction) => {
+          const newItem: DeductionItem = {
+            ...deduction,
+            id: Date.now().toString(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+
+          setDeductionItems((prev) => [...prev, newItem]);
+        }}
       />
 
       {/* Edit Asset Dialog */}
