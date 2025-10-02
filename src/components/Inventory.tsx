@@ -6,81 +6,22 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InventoryItem, AssetType } from "@/types/zakat";
-import { getInventory as loadInventoryFromStore, setInventory as saveInventoryToStore } from "@/lib/store";
+import {
+  getInventory as loadInventoryFromStore,
+  setInventory as saveInventoryToStore,
+  getSettings,
+  getDefaultSettings,
+  getExchangeRates,
+  getMetalPrices,
+  getDeductions,
+} from "@/lib/store";
 import { AddAssetDialog } from "@/components/AddAssetDialog";
 import { EditAssetDialog } from "@/components/EditAssetDialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { getOnboardingPhase, setOnboardingPhase } from "@/lib/onboarding";
 import { useNavigate } from "react-router-dom";
-
-// Mock inventory data
-const mockInventory: InventoryItem[] = [
-  {
-    id: '1',
-    label: 'Compte courant BNP Paribas',
-    type: 'CASH',
-    ownership: 'SELF',
-    currency: 'EUR',
-    amount: 15420.50,
-    archived: false,
-    notes: 'Compte principal',
-    createdAt: '2024-01-15',
-    updatedAt: '2024-01-15'
-  },
-  {
-    id: '2',
-    label: 'PEA Boursorama',
-    type: 'PEA',
-    ownership: 'SELF',
-    currency: 'EUR',
-    amount: 45680.00,
-    archived: false,
-    notes: 'Portefeuille diversifié ETF',
-    createdAt: '2024-01-10',
-    updatedAt: '2024-03-01'
-  },
-  {
-    id: '3',
-    label: 'Bitcoin',
-    type: 'CRYPTO',
-    ownership: 'SELF',
-    token: 'BTC',
-    quantity: 0.5,
-    pricePerToken: 65000,
-    currency: 'USD',
-    archived: false,
-    notes: 'Cold storage',
-    createdAt: '2023-12-01',
-    updatedAt: '2024-03-15'
-  },
-  {
-    id: '4',
-    label: 'Lingot or 100g',
-    type: 'GOLD',
-    ownership: 'SELF',
-    metal: 'GOLD',
-    weightG: 100,
-    purity: 0.9999,
-    archived: false,
-    notes: 'Coffre bancaire',
-    createdAt: '2023-08-20',
-    updatedAt: '2023-08-20'
-  },
-  {
-    id: '5',
-    label: 'Alliance en or (épouse)',
-    type: 'JEWELRY',
-    ownership: 'SPOUSE',
-    metal: 'GOLD',
-    weightG: 8,
-    purity: 0.750,
-    archived: false,
-    notes: 'Usage personnel',
-    createdAt: '2022-06-15',
-    updatedAt: '2022-06-15'
-  }
-];
+import { ZakatCalculator } from "@/lib/zakat-calculator";
 
 const assetTypeConfig: Record<AssetType, { icon: any; label: string; color: string }> = {
   CASH: { icon: Wallet, label: 'Cash', color: 'bg-blue-500' },
@@ -118,6 +59,11 @@ export function Inventory() {
     const matchesArchived = showArchived ? item.archived : !item.archived;
     return matchesSearch && matchesType && matchesArchived;
   });
+
+  const currentSettings = getSettings() || getDefaultSettings();
+  const exchangeRates = getExchangeRates();
+  const metalPrices = getMetalPrices();
+  const deductions = getDeductions();
 
   const handleAddAsset = (newItemData: Omit<InventoryItem, 'id' | 'createdAt' | 'updatedAt'>) => {
     const newItem: InventoryItem = {
@@ -177,13 +123,28 @@ export function Inventory() {
   };
 
   const getTotalValue = (): string => {
-    // Simplified total calculation (would need proper conversion rates)
-    const eurItems = filteredItems.filter(item => item.currency === 'EUR');
-    const total = eurItems.reduce((sum, item) => sum + (item.amount || 0), 0);
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(total);
+    try {
+      const calculation = ZakatCalculator.calculate(
+        items,
+        deductions,
+        currentSettings,
+        exchangeRates,
+        metalPrices
+      );
+
+      const visibleIds = new Set(filteredItems.map(item => item.id));
+      const total = calculation.breakdown.items
+        .filter(entry => visibleIds.has(entry.id))
+        .reduce((sum, entry) => sum + entry.convertedValue, 0);
+
+      return new Intl.NumberFormat('fr-FR', {
+        style: 'currency',
+        currency: currentSettings.baseCurrency
+      }).format(total);
+    } catch (error) {
+      console.error('Failed to calculate inventory total', error);
+      return '—';
+    }
   };
 
   return (
@@ -249,7 +210,7 @@ export function Inventory() {
               <DollarSign className="w-4 h-4 text-success" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Est. EUR Value</p>
+              <p className="text-sm text-muted-foreground">Est. {currentSettings.baseCurrency} Value</p>
               <p className="text-xl font-semibold text-foreground">{getTotalValue()}</p>
             </div>
           </div>
