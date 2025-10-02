@@ -66,24 +66,33 @@ export function Layout({ children, currentPage = 'dashboard' }: LayoutProps) {
     <div className="min-h-screen">
       {isCompact && (
         <div className="fixed top-5 left-1/2 z-[60] -translate-x-1/2 px-4 transition-opacity duration-300">
-          <div className="flex items-center gap-1 rounded-full border border-white/10 bg-card/90 px-3 py-2 shadow-card backdrop-blur-2xl">
-            {navigation.map((item) => (
-              <button
-                key={item.name}
-                onClick={() => navigate(item.path)}
-                className={cn(
-                  "relative flex h-10 w-10 items-center justify-center rounded-full text-sm transition-spring",
-                  activePage === item.page
-                    ? "bg-primary text-primary-foreground shadow-glow"
-                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                )}
-                aria-label={item.name}
-                type="button"
-              >
-                <item.icon className="h-4 w-4" />
-                <span className="sr-only">{item.name}</span>
-              </button>
-            ))}
+          <div className="flex items-center gap-2 rounded-full border border-white/10 bg-card/95 px-4 py-2 shadow-card backdrop-blur-2xl">
+            <div className="flex items-center gap-2 pr-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-primary text-primary-foreground shadow-glow">
+                <Calendar className="h-4 w-4" />
+              </div>
+              <span className="text-sm font-semibold text-foreground">Zakatinator</span>
+            </div>
+            <span className="hidden h-6 w-px bg-white/10 sm:block" aria-hidden="true" />
+            <nav className="flex items-center gap-1">
+              {navigation.map((item) => (
+                <button
+                  key={item.name}
+                  onClick={() => navigate(item.path)}
+                  className={cn(
+                    "relative flex h-10 w-10 items-center justify-center rounded-full text-sm transition-spring",
+                    activePage === item.page
+                      ? "bg-primary text-primary-foreground shadow-glow"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  )}
+                  aria-label={item.name}
+                  type="button"
+                >
+                  <item.icon className="h-4 w-4" />
+                  <span className="sr-only">{item.name}</span>
+                </button>
+              ))}
+            </nav>
           </div>
         </div>
       )}
