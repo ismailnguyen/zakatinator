@@ -7,9 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Globe, Coins, Scale, Shield } from "lucide-react";
+import { Calendar, Globe, Scale, Shield, RefreshCw } from "lucide-react";
 import { ZakatSettings, Currency, CalendarSystem, NisabMode } from "@/types/zakat";
-import { getSettings as loadSettingsFromStore, setSettings as saveSettingsToStore } from "@/lib/store";
+import {
+  getSettings as loadSettingsFromStore,
+  setSettings as saveSettingsToStore,
+  refreshExchangeRates,
+  refreshMetalPrices,
+  getExchangeRatesLastUpdated,
+  getMetalPricesLastUpdated,
+} from "@/lib/store";
 import { useToast } from "@/hooks/use-toast";
 
 // Default settings
@@ -44,6 +51,10 @@ export function Settings() {
   const { toast } = useToast();
   const [settings, setSettings] = useState<ZakatSettings>(loadSettingsFromStore() || defaultSettings);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isRefreshingRates, setIsRefreshingRates] = useState(false);
+  const [isRefreshingMetals, setIsRefreshingMetals] = useState(false);
+  const [exchangeRatesUpdatedAt, setExchangeRatesUpdatedAt] = useState<string | null>(() => getExchangeRatesLastUpdated(settings.baseCurrency));
+  const [metalPricesUpdatedAt, setMetalPricesUpdatedAt] = useState<string | null>(() => getMetalPricesLastUpdated(settings.baseCurrency));
 
   const updateSetting = <K extends keyof ZakatSettings>(
     key: K,
@@ -51,6 +62,12 @@ export function Settings() {
   ) => {
     setSettings(prev => ({ ...prev, [key]: value }));
     setHasUnsavedChanges(true);
+
+    if (key === 'baseCurrency') {
+      const nextBase = value as Currency;
+      setExchangeRatesUpdatedAt(getExchangeRatesLastUpdated(nextBase));
+      setMetalPricesUpdatedAt(getMetalPricesLastUpdated(nextBase));
+    }
   };
 
   const updateFiqhSetting = <K extends keyof ZakatSettings['fiqh']>(
@@ -75,21 +92,60 @@ export function Settings() {
       'zakatinator-inventory',
       'zakatinator-deductions',
       'zakatinator-exchange-rates',
+      'zakatinator-exchange-rates-meta',
       'zakatinator-metal-prices',
+      'zakatinator-metal-prices-meta',
       'zakatinator-history',
     ];
     try {
       keys.forEach(k => localStorage.removeItem(k));
       setSettings(defaultSettings);
       setHasUnsavedChanges(false);
+      setExchangeRatesUpdatedAt(null);
+      setMetalPricesUpdatedAt(null);
       toast({ title: 'All data cleared', description: 'Your local settings, inventory, and history have been removed.' });
     } catch (e) {
       toast({ title: 'Failed to clear data', description: 'Please try again or clear site data from your browser.', });
     }
   };
 
+  const handleRefreshExchangeRates = async () => {
+    setIsRefreshingRates(true);
+    try {
+      await refreshExchangeRates({ force: true, baseCurrency: settings.baseCurrency });
+      const updatedAt = getExchangeRatesLastUpdated(settings.baseCurrency);
+      setExchangeRatesUpdatedAt(updatedAt);
+      toast({ title: 'Exchange rates updated', description: 'Latest currency conversion rates loaded from the market.' });
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Failed to update exchange rates', description: 'Please try again later or check your internet connection.', variant: 'destructive' });
+    } finally {
+      setIsRefreshingRates(false);
+    }
+  };
+
+  const handleRefreshMetalPrices = async () => {
+    setIsRefreshingMetals(true);
+    try {
+      const latest = await refreshMetalPrices({ force: true, baseCurrency: settings.baseCurrency });
+      setMetalPricesUpdatedAt(latest.lastUpdated);
+      toast({ title: 'Metal prices updated', description: 'Gold and silver prices refreshed using the latest market data.' });
+    } catch (error) {
+      console.error(error);
+      toast({ title: 'Failed to update metal prices', description: 'Please try again later or check your internet connection.', variant: 'destructive' });
+    } finally {
+      setIsRefreshingMetals(false);
+    }
+  };
+
+  const formatUpdatedAt = (iso: string | null) => {
+    if (!iso) return 'No data yet';
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return 'Unknown';
+    return date.toLocaleString();
+  };
+
   const formatCurrency = (amount: number) => {
-    const currency = currencies.find(c => c.value === settings.baseCurrency);
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: settings.baseCurrency
@@ -152,6 +208,30 @@ export function Settings() {
             </div>
 
             <Separator />
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Exchange Rates</p>
+                  <p className="text-xs text-muted-foreground">Last updated: {formatUpdatedAt(exchangeRatesUpdatedAt)}</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleRefreshExchangeRates} disabled={isRefreshingRates}>
+                  <RefreshCw className={`w-3 h-3 mr-2 ${isRefreshingRates ? 'animate-spin' : ''}`} />
+                  {isRefreshingRates ? 'Refreshing…' : 'Refresh'}
+                </Button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Gold & Silver Prices</p>
+                  <p className="text-xs text-muted-foreground">Last updated: {formatUpdatedAt(metalPricesUpdatedAt)}</p>
+                </div>
+                <Button variant="outline" size="sm" onClick={handleRefreshMetalPrices} disabled={isRefreshingMetals}>
+                  <RefreshCw className={`w-3 h-3 mr-2 ${isRefreshingMetals ? 'animate-spin' : ''}`} />
+                  {isRefreshingMetals ? 'Refreshing…' : 'Refresh'}
+                </Button>
+              </div>
+            </div>
 
             <div>
               <Label htmlFor="nisabMode">Nisab Benchmark</Label>
