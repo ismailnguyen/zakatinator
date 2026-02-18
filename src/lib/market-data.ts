@@ -1,7 +1,7 @@
 import { Currency, ExchangeRates, MetalPrices } from "@/types/zakat";
 
 const FX_API_BASE = "https://open.er-api.com/v6/latest";
-const METAL_API_BASE = "https://data-asg.goldprice.org/dbXRates";
+const METAL_API_BASE = "/api/gold-price";
 const TROY_OUNCE_IN_GRAMS = 31.1034768;
 
 interface ExchangeApiResponse {

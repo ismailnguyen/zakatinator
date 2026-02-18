@@ -5,6 +5,13 @@
 [build.environment]
   NODE_VERSION = "18"
 
+# Proxy for Gold Price API to avoid CORS
+[[redirects]]
+  from = "/api/gold-price/*"
+  to = "https://data-asg.goldprice.org/dbXRates/:splat"
+  status = 200
+  force = true
+
 # SPA fallback so client-side routes work on refresh/direct links
 [[redirects]]
   from = "/*"

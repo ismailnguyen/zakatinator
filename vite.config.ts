@@ -7,6 +7,13 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      "/api/gold-price": {
+        target: "https://data-asg.goldprice.org/dbXRates",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/gold-price/, ""),
+      },
+    },
   },
   plugins: [react()],
   resolve: {
