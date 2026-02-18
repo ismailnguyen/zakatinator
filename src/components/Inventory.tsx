@@ -58,7 +58,8 @@ export function Inventory() {
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.notes.toLowerCase().includes(searchTerm.toLowerCase());
+      item.notes.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.location && item.location.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesType = filterType === 'all' || item.type === filterType;
     const matchesArchived = showArchived ? item.archived : !item.archived;
     return matchesSearch && matchesType && matchesArchived;
