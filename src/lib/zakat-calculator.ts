@@ -1,22 +1,22 @@
-import { 
-  InventoryItem, 
-  DeductionItem, 
-  ZakatSettings, 
-  ExchangeRates, 
-  MetalPrices, 
+import {
+  InventoryItem,
+  DeductionItem,
+  ZakatSettings,
+  ExchangeRates,
+  MetalPrices,
   CalculationResult,
   Currency,
   AssetType
 } from "@/types/zakat";
 
 export class ZakatCalculator {
-  
+
   /**
    * Convert amount from source currency to base currency
    */
   static convertToBase(
-    amount: number, 
-    fromCurrency: Currency, 
+    amount: number,
+    fromCurrency: Currency,
     baseCurrency: Currency,
     exchangeRates: ExchangeRates
   ): number {
@@ -93,7 +93,7 @@ export class ZakatCalculator {
   ): { included: boolean; reason?: string } {
     // Manual override takes precedence
     if (item.includeOverride !== null && item.includeOverride !== undefined) {
-      return { 
+      return {
         included: item.includeOverride,
         reason: item.includeOverride ? 'Manual inclusion' : 'Manual exclusion'
       };
@@ -109,8 +109,8 @@ export class ZakatCalculator {
       case 'CASH_MINOR':
         return {
           included: settings.fiqh.includeMinorsCash,
-          reason: settings.fiqh.includeMinorsCash 
-            ? "Minor's cash included per settings" 
+          reason: settings.fiqh.includeMinorsCash
+            ? "Minor's cash included per settings"
             : "Minor's cash excluded per settings"
         };
 
@@ -139,7 +139,7 @@ export class ZakatCalculator {
       case 'LOAN_RECEIVABLE':
         return {
           included: item.loanStrength === 'STRONG',
-          reason: item.loanStrength === 'STRONG' 
+          reason: item.loanStrength === 'STRONG'
             ? 'Strong loan included'
             : 'Weak/uncertain loan excluded'
         };
@@ -147,7 +147,7 @@ export class ZakatCalculator {
       // Most asset types are included by default
       case 'CASH':
       case 'ASSURANCE_VIE':
-      case 'PEA':
+      case 'STOCKS':
       case 'CRYPTO':
       case 'FX_CASH':
       case 'GOLD':
@@ -174,7 +174,7 @@ export class ZakatCalculator {
       case 'CASH':
       case 'CASH_MINOR':
       case 'ASSURANCE_VIE':
-      case 'PEA':
+      case 'STOCKS':
       case 'FX_CASH':
       case 'TRADE_STOCK':
       case 'OTHER':
@@ -212,8 +212,8 @@ export class ZakatCalculator {
       case 'JEWELRY':
       case 'WATCH':
         if (item.weightG && item.purity && item.metal) {
-          const pricePerG = item.metal === 'GOLD' 
-            ? metalPrices.goldPerGram 
+          const pricePerG = item.metal === 'GOLD'
+            ? metalPrices.goldPerGram
             : metalPrices.silverPerGram;
           return this.calculateMetalValue(item.weightG, item.purity, pricePerG);
         } else if (item.amount && item.currency) {
@@ -275,7 +275,7 @@ export class ZakatCalculator {
       // Add one year to anchor date
       nextDue = new Date(anchor);
       nextDue.setFullYear(today.getFullYear());
-      
+
       // If this year's date has passed, move to next year
       if (nextDue <= today) {
         nextDue.setFullYear(today.getFullYear() + 1);
@@ -285,7 +285,7 @@ export class ZakatCalculator {
       // In a real implementation, use a proper Hijri calendar library
       nextDue = new Date(anchor);
       const lunarYearMs = 354 * 24 * 60 * 60 * 1000;
-      
+
       while (nextDue <= today) {
         nextDue = new Date(nextDue.getTime() + lunarYearMs);
       }
@@ -309,10 +309,10 @@ export class ZakatCalculator {
     exchangeRates: ExchangeRates,
     metalPrices: MetalPrices
   ): Omit<CalculationResult, 'id' | 'timestamp'> {
-    
+
     const itemBreakdown = inventory.map(item => {
       const inclusion = this.shouldIncludeItem(item, settings);
-      const value = inclusion.included 
+      const value = inclusion.included
         ? this.calculateItemValue(item, settings, exchangeRates, metalPrices)
         : 0;
 
@@ -333,15 +333,15 @@ export class ZakatCalculator {
       .reduce((sum, item) => sum + item.convertedValue, 0);
 
     const deductionsTotal = this.calculateDeductions(
-      deductions, 
-      settings.baseCurrency, 
+      deductions,
+      settings.baseCurrency,
       exchangeRates
     );
 
     const netAssets = Math.max(0, grossAssets - deductionsTotal);
     const nisabValue = this.calculateNisab(settings, metalPrices);
-    
-    const zakatDue = netAssets >= nisabValue 
+
+    const zakatDue = netAssets >= nisabValue
       ? Number((netAssets * 0.025).toFixed(settings.rounding))
       : 0;
 

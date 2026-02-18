@@ -19,7 +19,9 @@ const assetTypes: { value: AssetType; label: string }[] = [
   { value: 'CASH', label: 'Cash / Current Account' },
   { value: 'CASH_MINOR', label: 'Minor\'s Cash Account' },
   { value: 'ASSURANCE_VIE', label: 'Life Insurance (Assurance-vie)' },
-  { value: 'PEA', label: 'PEA (Plan Épargne Actions)' },
+  { value: 'ASSURANCE_VIE', label: 'Life Insurance (Assurance-vie)' },
+  { value: 'STOCKS', label: 'Stock Options (Actions, PEA, CTO)' },
+  { value: 'CRYPTO', label: 'Cryptocurrency' },
   { value: 'CRYPTO', label: 'Cryptocurrency' },
   { value: 'FX_CASH', label: 'Foreign Currency' },
   { value: 'GOLD', label: 'Gold (Bullion/Coins)' },
@@ -68,7 +70,7 @@ export function AddAssetDialog({ open, onOpenChange, onAdd }: AddAssetDialogProp
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.label?.trim()) {
       toast({
         title: "Validation Error",
@@ -84,30 +86,30 @@ export function AddAssetDialog({ open, onOpenChange, onAdd }: AddAssetDialogProp
       ownership: formData.ownership!,
       archived: false,
       notes: formData.notes || '',
-      
+
       // Currency-based fields
       currency: needsCurrency() ? formData.currency : undefined,
       amount: needsCurrency() ? (formData.amount || 0) : undefined,
-      
+
       // Metal fields
       metal: needsMetal() ? (formData.metal as 'GOLD' | 'SILVER') : undefined,
       weightG: needsMetal() ? formData.weightG : undefined,
       purity: needsMetal() ? formData.purity : undefined,
-      
+
       // Crypto fields
       token: needsCrypto() ? formData.token : undefined,
       quantity: needsCrypto() ? formData.quantity : undefined,
       pricePerToken: needsCrypto() ? formData.pricePerToken : undefined,
-      
+
       // Loan fields
       loanStrength: needsLoan() ? formData.loanStrength : undefined,
-      
+
       // Override
       includeOverride: formData.includeOverride,
     };
 
     onAdd(newItem);
-    
+
     toast({
       title: "Asset Added",
       description: `${formData.label} has been added to your inventory.`,
@@ -123,12 +125,12 @@ export function AddAssetDialog({ open, onOpenChange, onAdd }: AddAssetDialogProp
       archived: false,
       notes: '',
     });
-    
+
     onOpenChange(false);
   };
 
   const needsCurrency = () => {
-    return ['CASH', 'CASH_MINOR', 'ASSURANCE_VIE', 'PEA', 'FX_CASH', 'TRADE_STOCK', 'OTHER'].includes(formData.type!);
+    return ['CASH', 'CASH_MINOR', 'ASSURANCE_VIE', 'STOCKS', 'FX_CASH', 'TRADE_STOCK', 'OTHER'].includes(formData.type!);
   };
 
   const needsMetal = () => {
@@ -151,7 +153,7 @@ export function AddAssetDialog({ open, onOpenChange, onAdd }: AddAssetDialogProp
             Add New Asset
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
             {/* Basic Info */}

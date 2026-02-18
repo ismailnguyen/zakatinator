@@ -4,11 +4,13 @@ export type CalendarSystem = 'HIJRI' | 'GREGORIAN';
 
 export type NisabMode = 'GOLD' | 'SILVER' | 'MANUAL';
 
-export type AssetType = 
+export type AssetType =
   | 'CASH'
-  | 'CASH_MINOR' 
+  | 'CASH_MINOR'
   | 'ASSURANCE_VIE'
-  | 'PEA'
+  | 'ASSURANCE_VIE'
+  | 'STOCKS'
+  | 'CRYPTO'
   | 'CRYPTO'
   | 'FX_CASH'
   | 'GOLD'
@@ -47,29 +49,29 @@ export interface InventoryItem {
   label: string;
   type: AssetType;
   ownership: Ownership;
-  
+
   // Currency-based items
   currency?: Currency;
   amount?: number;
-  
+
   // Precious metals
   metal?: 'GOLD' | 'SILVER';
   weightG?: number;
   purity?: number; // e.g., 0.999 for 99.9%
-  
+
   // Crypto
   token?: string;
   quantity?: number;
   pricePerToken?: number;
-  
+
   // Loans
   loanStrength?: LoanStrength;
-  
+
   // Overrides
   includeOverride?: boolean;
   archived: boolean;
   notes: string;
-  
+
   createdAt: string;
   updatedAt: string;
 }
@@ -81,7 +83,7 @@ export interface DeductionItem {
   amount: number;
   dueDate?: string;
   notes: string;
-  
+
   createdAt: string;
   updatedAt: string;
 }
@@ -103,21 +105,21 @@ export interface CalculationResult {
     hijri?: string;
     gregorian: string;
   };
-  
+
   // Inputs (frozen at calculation time)
   settings: ZakatSettings;
   inventory: InventoryItem[];
   deductions: DeductionItem[];
   exchangeRates: ExchangeRates;
   metalPrices: MetalPrices;
-  
+
   // Calculation breakdown
   grossAssets: number;
   deductionsTotal: number;
   netAssets: number;
   nisabValue: number;
   zakatDue: number;
-  
+
   breakdown: {
     byType: Record<AssetType, number>;
     items: Array<{
@@ -131,7 +133,7 @@ export interface CalculationResult {
       reason?: string;
     }>;
   };
-  
+
   status: 'BELOW_NISAB' | 'DUE';
 }
 

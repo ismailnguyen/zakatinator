@@ -19,7 +19,9 @@ const assetTypes: { value: AssetType; label: string }[] = [
   { value: 'CASH', label: 'Cash / Current Account' },
   { value: 'CASH_MINOR', label: 'Minor\'s Cash Account' },
   { value: 'ASSURANCE_VIE', label: 'Life Insurance (Assurance-vie)' },
-  { value: 'PEA', label: 'PEA (Plan Épargne Actions)' },
+  { value: 'ASSURANCE_VIE', label: 'Life Insurance (Assurance-vie)' },
+  { value: 'STOCKS', label: 'Stock Options (Actions, PEA, CTO)' },
+  { value: 'CRYPTO', label: 'Cryptocurrency' },
   { value: 'CRYPTO', label: 'Cryptocurrency' },
   { value: 'FX_CASH', label: 'Foreign Currency' },
   { value: 'GOLD', label: 'Gold (Bullion/Coins)' },
@@ -68,7 +70,7 @@ export function EditAssetDialog({ open, onOpenChange, item, onSave }: EditAssetD
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData?.label?.trim()) {
       toast({
         title: "Validation Error",
@@ -84,17 +86,17 @@ export function EditAssetDialog({ open, onOpenChange, item, onSave }: EditAssetD
     };
 
     onSave(updatedItem);
-    
+
     toast({
       title: "Asset Updated",
       description: `${formData.label} has been updated.`,
     });
-    
+
     onOpenChange(false);
   };
 
   const needsCurrency = () => {
-    return formData && ['CASH', 'CASH_MINOR', 'ASSURANCE_VIE', 'PEA', 'FX_CASH', 'TRADE_STOCK', 'OTHER'].includes(formData.type);
+    return formData && ['CASH', 'CASH_MINOR', 'ASSURANCE_VIE', 'STOCKS', 'FX_CASH', 'TRADE_STOCK', 'OTHER'].includes(formData.type);
   };
 
   const needsMetal = () => {
@@ -119,7 +121,7 @@ export function EditAssetDialog({ open, onOpenChange, item, onSave }: EditAssetD
             Edit Asset: {formData.label}
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
             {/* Basic Info */}
