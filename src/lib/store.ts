@@ -33,6 +33,7 @@ const defaultSettings: ZakatSettings = {
     includePersonalGoldContent: false,
   },
   rounding: 2,
+  highContrast: false,
 };
 
 const defaultExchangeRates: ExchangeRates = {
@@ -67,6 +68,16 @@ export function getDefaultSettings(): ZakatSettings {
 
 export function setSettings(s: ZakatSettings) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+  applyTheme(s.highContrast || false);
+}
+
+export function applyTheme(highContrast: boolean) {
+  if (typeof document === 'undefined') return;
+  if (highContrast) {
+    document.body.classList.add('high-contrast');
+  } else {
+    document.body.classList.remove('high-contrast');
+  }
 }
 
 const getEffectiveBaseCurrency = (): Currency => {

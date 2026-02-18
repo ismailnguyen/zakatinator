@@ -42,6 +42,7 @@ export interface ZakatSettings {
     includePersonalGoldContent: boolean;
   };
   rounding: number;
+  highContrast?: boolean;
 }
 
 export interface InventoryItem {

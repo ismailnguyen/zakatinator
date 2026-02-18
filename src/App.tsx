@@ -11,7 +11,7 @@ import BreakdownPage from "./pages/BreakdownPage";
 import NotFound from "./pages/NotFound";
 import WelcomePage from "./pages/WelcomePage";
 import HistoryPage from "./pages/HistoryPage";
-import { refreshExchangeRates, refreshMetalPrices } from "@/lib/store";
+import { refreshExchangeRates, refreshMetalPrices, getSettings, applyTheme, getDefaultSettings } from "@/lib/store";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +20,10 @@ const App = () => {
     if (typeof window === "undefined") return;
 
     const warmUpMarketData = async () => {
+      // Apply theme preference immediately
+      const settings = getSettings() || getDefaultSettings();
+      applyTheme(settings.highContrast || false);
+
       try {
         await refreshExchangeRates();
       } catch (error) {

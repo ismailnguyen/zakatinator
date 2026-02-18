@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Globe, Scale, Shield, RefreshCw } from "lucide-react";
+import { Calendar, Globe, Scale, Shield, RefreshCw, Eye } from "lucide-react";
 import { ZakatSettings, Currency, CalendarSystem, NisabMode } from "@/types/zakat";
 import {
   getSettings as loadSettingsFromStore,
@@ -280,8 +280,8 @@ export function Settings() {
           <div className="space-y-4">
             <div>
               <Label htmlFor="baseCurrency">Base Currency</Label>
-              <Select 
-                value={settings.baseCurrency} 
+              <Select
+                value={settings.baseCurrency}
                 onValueChange={(value) => updateSetting('baseCurrency', value as Currency)}
               >
                 <SelectTrigger>
@@ -331,8 +331,8 @@ export function Settings() {
 
             <div>
               <Label htmlFor="nisabMode">Nisab Benchmark</Label>
-              <Select 
-                value={settings.nisabMode} 
+              <Select
+                value={settings.nisabMode}
                 onValueChange={(value) => updateSetting('nisabMode', value as NisabMode)}
               >
                 <SelectTrigger>
@@ -388,8 +388,8 @@ export function Settings() {
           <div className="space-y-4">
             <div>
               <Label htmlFor="calendar">Calendar System</Label>
-              <Select 
-                value={settings.calendar} 
+              <Select
+                value={settings.calendar}
                 onValueChange={(value) => updateSetting('calendar', value as CalendarSystem)}
               >
                 <SelectTrigger>
@@ -517,8 +517,8 @@ export function Settings() {
               <div className="bg-muted/50 p-4 rounded-lg">
                 <h4 className="text-sm font-medium text-foreground mb-2">Fiqh Reminder</h4>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  This app provides computational assistance only. The default settings follow widely 
-                  accepted opinions, but different schools of thought may have varying rulings. 
+                  This app provides computational assistance only. The default settings follow widely
+                  accepted opinions, but different schools of thought may have varying rulings.
                   Always consult qualified Islamic scholars for your specific circumstances.
                 </p>
               </div>
@@ -538,17 +538,37 @@ export function Settings() {
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            <Button variant="destructive" className="justify-start" onClick={clearAllData}>
-              <Shield className="w-4 h-4 mr-2" />
-              Clear All Data
-            </Button>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-foreground" />
+                  <Label>High Contrast Mode</Label>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Increases contrast and removes transparency for better readability
+                </p>
+              </div>
+              <Switch
+                checked={settings.highContrast || false}
+                onCheckedChange={(checked) => updateSetting('highContrast', checked)}
+              />
+            </div>
+
+            <Separator />
+
+            <div className="grid gap-4 md:grid-cols-3">
+              <Button variant="destructive" className="justify-start" onClick={clearAllData}>
+                <Shield className="w-4 h-4 mr-2" />
+                Clear All Data
+              </Button>
+            </div>
           </div>
 
           <div className="mt-4 p-4 bg-accent/30 rounded-lg">
             <p className="text-sm text-foreground font-medium mb-1">Privacy First</p>
             <p className="text-xs text-muted-foreground">
-              All your data is stored locally on your device. Nothing is sent to external servers 
+              All your data is stored locally on your device. Nothing is sent to external servers
               unless you explicitly choose to use online rate providers.
             </p>
           </div>
@@ -557,8 +577,8 @@ export function Settings() {
 
       {/* Actions */}
       <div className="flex items-center gap-4">
-        <Button 
-          onClick={saveSettings} 
+        <Button
+          onClick={saveSettings}
           disabled={!hasUnsavedChanges}
           className="min-w-32"
         >

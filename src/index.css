@@ -128,6 +128,100 @@ All colors MUST be HSL for proper theming.
     --water-glow: 193 85% 28%;
     --water-depth: 191 78% 20%;
   }
+
+  .high-contrast {
+    /* Pure Black & White Foundation */
+    --background: 0 0% 100%;       /* Pure White */
+    --foreground: 0 0% 0%;         /* Pure Black */
+    
+    /* Solid Surfaces - No Translucency */
+    --card: 0 0% 100%;             /* Solid White */
+    --card-foreground: 0 0% 0%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    
+    /* High contrast primary */
+    --primary: 240 100% 25%;       /* Deepest Blue for visibility */
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 240 100% 25%;  /* No glow, just solid color */
+    
+    /* Secondary/Accent */
+    --secondary: 0 0% 90%;         /* Light Grey */
+    --secondary-foreground: 0 0% 0%;
+    
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 30%;  /* Dark Grey */
+    
+    --accent: 0 0% 90%;
+    --accent-foreground: 0 0% 0%;
+    
+    /* Semantic Colors - High Contrast */
+    --destructive: 0 100% 40%;     /* Dark Red */
+    --destructive-foreground: 0 0% 100%;
+    --success: 120 100% 25%;       /* Dark Green */
+    --success-foreground: 0 0% 100%;
+    --warning: 40 100% 40%;        /* Dark Orange/Brown */
+    --warning-foreground: 0 0% 100%;
+    
+    /* Borders */
+    --border: 0 0% 0%;             /* Solid Black Borders */
+    --input: 0 0% 0%;
+    --ring: 0 0% 0%;
+    
+    /* Remove gradients */
+    --gradient-primary: linear-gradient(to right, #000080, #000080);
+    --gradient-gold: linear-gradient(to right, #FFD700, #FFD700);
+    --gradient-subtle: none;
+    --gradient-hero: none;
+    
+    /* Remove shadows */
+    --shadow-elegant: none;
+    --shadow-glow: none;
+    --shadow-card: 0 0 0 2px black; /* Bold borders instead of shadows */
+    
+    /* Water Theme Overrides - Disable backgrounds */
+    --water-foam: 0 0% 100%;
+    --water-glow: 0 0% 100%;
+    --water-depth: 0 0% 100%;
+  }
+
+  .high-contrast.dark {
+    /* High Contrast Dark Mode */
+    --background: 0 0% 0%;         /* Pure Black */
+    --foreground: 0 0% 100%;       /* Pure White */
+    
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 100%;
+    
+    --popover: 0 0% 0%;
+    --popover-foreground: 0 0% 100%;
+    
+    --primary: 60 100% 50%;        /* Bright Yellow for best visibility on black */
+    --primary-foreground: 0 0% 0%;
+    
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 100%;
+    
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 80%;
+    
+    --accent: 0 0% 20%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 100% 60%;     /* Bright Red */
+    --destructive-foreground: 0 0% 0%;
+    --success: 120 100% 50%;       /* Bright Green */
+    --success-foreground: 0 0% 0%;
+    --warning: 40 100% 50%;        /* Bright Orange */
+    --warning-foreground: 0 0% 0%;
+    
+    --border: 0 0% 100%;           /* Solid White Borders */
+    --input: 0 0% 100%;
+    --ring: 0 0% 100%;
+
+    --shadow-card: 0 0 0 2px white;
+  }
 }
 
 @layer base {
@@ -192,6 +286,11 @@ All colors MUST be HSL for proper theming.
   .dark body::after {
     mix-blend-mode: lighten;
     opacity: 0.4;
+  }
+
+  .high-contrast body::before,
+  .high-contrast body::after {
+    display: none;
   }
 }
 
