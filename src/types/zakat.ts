@@ -49,6 +49,7 @@ export interface InventoryItem {
   label: string;
   type: AssetType;
   ownership: Ownership;
+  location?: string; // Bank name, wallet, physical location, etc.
 
   // Currency-based items
   currency?: Currency;

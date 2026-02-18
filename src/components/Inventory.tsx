@@ -29,7 +29,7 @@ const assetTypeConfig: Record<AssetType, { icon: any; label: string; color: stri
   CASH: { icon: Wallet, label: 'Cash', color: 'bg-blue-500' },
   CASH_MINOR: { icon: Wallet, label: 'Minor Cash', color: 'bg-blue-400' },
   ASSURANCE_VIE: { icon: Building, label: 'Life Insurance', color: 'bg-purple-500' },
-  PEA: { icon: DollarSign, label: 'PEA', color: 'bg-green-500' },
+  STOCKS: { icon: DollarSign, label: 'Stock Options', color: 'bg-green-500' },
   CRYPTO: { icon: Smartphone, label: 'Cryptocurrency', color: 'bg-orange-500' },
   FX_CASH: { icon: DollarSign, label: 'Foreign Cash', color: 'bg-teal-500' },
   GOLD: { icon: Coins, label: 'Gold', color: 'bg-yellow-500' },
@@ -58,7 +58,7 @@ export function Inventory() {
 
   const filteredItems = items.filter(item => {
     const matchesSearch = item.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.notes.toLowerCase().includes(searchTerm.toLowerCase());
+      item.notes.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = filterType === 'all' || item.type === filterType;
     const matchesArchived = showArchived ? item.archived : !item.archived;
     return matchesSearch && matchesType && matchesArchived;
@@ -75,7 +75,7 @@ export function Inventory() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    
+
     setItems(prev => [...prev, newItem]);
   };
 
@@ -95,7 +95,7 @@ export function Inventory() {
   }, [deductionItems]);
 
   const handleSaveEdit = (updatedItem: InventoryItem) => {
-    setItems(prev => prev.map(item => 
+    setItems(prev => prev.map(item =>
       item.id === updatedItem.id ? updatedItem : item
     ));
   };
@@ -104,8 +104,8 @@ export function Inventory() {
     const item = items.find(i => i.id === id);
     if (!item) return;
 
-    setItems(prev => prev.map(item => 
-      item.id === id 
+    setItems(prev => prev.map(item =>
+      item.id === id
         ? { ...item, archived: !item.archived, updatedAt: new Date().toISOString() }
         : item
     ));
@@ -214,7 +214,7 @@ export function Inventory() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button 
+          <Button
             variant="outline"
             onClick={() => setShowArchived(!showArchived)}
             className={showArchived ? "bg-muted" : ""}
@@ -229,7 +229,7 @@ export function Inventory() {
             <MinusCircle className="w-4 h-4 mr-2" />
             Add Deduction
           </Button>
-          <Button 
+          <Button
             className="bg-gradient-primary hover:bg-primary"
             onClick={() => setAddDialogOpen(true)}
           >
@@ -320,7 +320,7 @@ export function Inventory() {
               />
             </div>
           </div>
-          
+
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger className="w-48">
               <Filter className="w-4 h-4 mr-2" />
@@ -329,7 +329,7 @@ export function Inventory() {
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
               <SelectItem value="CASH">Cash</SelectItem>
-              <SelectItem value="PEA">PEA</SelectItem>
+              <SelectItem value="STOCKS">Stock Options</SelectItem>
               <SelectItem value="CRYPTO">Cryptocurrency</SelectItem>
               <SelectItem value="GOLD">Gold</SelectItem>
               <SelectItem value="SILVER">Silver</SelectItem>
@@ -418,7 +418,7 @@ export function Inventory() {
         {filteredItems.map((item) => {
           const config = assetTypeConfig[item.type];
           const IconComponent = config.icon;
-          
+
           return (
             <Card key={item.id} className="p-6 shadow-card hover:shadow-elegant transition-smooth">
               <div className="flex items-center justify-between">
@@ -426,7 +426,7 @@ export function Inventory() {
                   <div className={cn("w-12 h-12 rounded-xl flex items-center justify-center text-white", config.color)}>
                     <IconComponent className="w-6 h-6" />
                   </div>
-                  
+
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-1">
                       <h3 className="text-lg font-semibold text-foreground">{item.label}</h3>
@@ -439,9 +439,18 @@ export function Inventory() {
                         </Badge>
                       )}
                     </div>
-                    
+
                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                       <span className="font-medium text-foreground">{formatValue(item)}</span>
+                      {item.location && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <Building className="w-3 h-3 inline" />
+                            {item.location}
+                          </span>
+                        </>
+                      )}
                       {item.notes && (
                         <>
                           <span>•</span>
@@ -453,16 +462,16 @@ export function Inventory() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => handleEditAsset(item)}
                   >
                     <Edit2 className="w-3 h-3 mr-1" />
                     Edit
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => handleArchiveAsset(item.id)}
                     className={item.archived ? "text-success hover:text-success" : "text-muted-foreground"}
@@ -506,7 +515,7 @@ export function Inventory() {
             )}
           </p>
           {!showArchived && (
-            <Button 
+            <Button
               className="bg-gradient-primary hover:bg-primary"
               onClick={() => setAddDialogOpen(true)}
             >

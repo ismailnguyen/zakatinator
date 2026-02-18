@@ -168,6 +168,16 @@ export function EditAssetDialog({ open, onOpenChange, item, onSave }: EditAssetD
               </Select>
             </div>
 
+            <div className="md:col-span-2">
+              <Label htmlFor="location">Location / Institution (Optional)</Label>
+              <Input
+                id="location"
+                placeholder="e.g., BNP Paribas, Ledger Nano S, Safe at home"
+                value={formData.location || ''}
+                onChange={(e) => updateField('location', e.target.value)}
+              />
+            </div>
+
             {/* Currency-based fields */}
             {needsCurrency() && (
               <>

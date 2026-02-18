@@ -62,6 +62,7 @@ export function AddAssetDialog({ open, onOpenChange, onAdd }: AddAssetDialogProp
     amount: 0,
     archived: false,
     notes: '',
+    location: '',
   });
 
   const updateField = <K extends keyof InventoryItem>(key: K, value: InventoryItem[K]) => {
@@ -86,6 +87,7 @@ export function AddAssetDialog({ open, onOpenChange, onAdd }: AddAssetDialogProp
       ownership: formData.ownership!,
       archived: false,
       notes: formData.notes || '',
+      location: formData.location || undefined,
 
       // Currency-based fields
       currency: needsCurrency() ? formData.currency : undefined,
@@ -124,6 +126,7 @@ export function AddAssetDialog({ open, onOpenChange, onAdd }: AddAssetDialogProp
       amount: 0,
       archived: false,
       notes: '',
+      location: '',
     });
 
     onOpenChange(false);
@@ -198,6 +201,16 @@ export function AddAssetDialog({ open, onOpenChange, onAdd }: AddAssetDialogProp
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="md:col-span-2">
+              <Label htmlFor="location">Location / Institution (Optional)</Label>
+              <Input
+                id="location"
+                placeholder="e.g., BNP Paribas, Ledger Nano S, Safe at home"
+                value={formData.location || ''}
+                onChange={(e) => updateField('location', e.target.value)}
+              />
             </div>
 
             {/* Currency-based fields */}
