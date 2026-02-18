@@ -195,12 +195,12 @@ export class ZakatCalculator {
             settings.baseCurrency,
             exchangeRates
           );
-        } else if (item.quantity && item.pricePerToken && item.currency) {
+        } else if (item.quantity && item.pricePerToken) {
           // Quantity × price approach
           const totalValue = item.quantity * item.pricePerToken;
           return this.convertToBase(
             totalValue,
-            item.currency,
+            item.currency || settings.baseCurrency,
             settings.baseCurrency,
             exchangeRates
           );

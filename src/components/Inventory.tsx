@@ -119,7 +119,7 @@ export function Inventory() {
 
   const formatValue = (item: InventoryItem): string => {
     if (item.type === 'CRYPTO' && item.quantity && item.pricePerToken) {
-      return `${item.quantity} ${item.token} (≈${(item.quantity * item.pricePerToken).toLocaleString()} ${item.currency})`;
+      return `${item.quantity} ${item.token} (≈${(item.quantity * item.pricePerToken).toLocaleString()} ${item.currency || currentSettings.baseCurrency})`;
     } else if ((item.type === 'GOLD' || item.type === 'SILVER' || item.type === 'JEWELRY') && item.weightG) {
       return `${item.weightG}g ${item.metal} (${(item.purity! * 100).toFixed(1)}%)`;
     } else if (item.amount && item.currency) {
