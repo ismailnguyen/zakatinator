@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { AssetType, InventoryItem, Currency, Ownership } from "@/types/zakat";
 import { useToast } from "@/hooks/use-toast";
+import { fetchCryptoPrice } from "@/lib/market-data";
+import { getSettings, getDefaultSettings } from "@/lib/store";
 
 interface AddAssetDialogProps {
   open: boolean;
@@ -63,8 +65,35 @@ export function AddAssetDialog({ open, onOpenChange, onAdd }: AddAssetDialogProp
     location: '',
   });
 
+  const [isFetchingPrice, setIsFetchingPrice] = useState(false);
+
   const updateField = <K extends keyof InventoryItem>(key: K, value: InventoryItem[K]) => {
     setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleTokenBlur = async () => {
+    if (formData.token && formData.type === 'CRYPTO') {
+      setIsFetchingPrice(true);
+      try {
+        const currency = formData.currency || settings.baseCurrency;
+        const price = await fetchCryptoPrice(formData.token, currency);
+        if (price) {
+          updateField('pricePerToken', price);
+          // Also set currency if not set
+          if (!formData.currency) {
+            updateField('currency', currency);
+          }
+          toast({
+            title: "Price Updated",
+            description: `Fetched current price for ${formData.token}: ${price} ${currency}`,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch price", error);
+      } finally {
+        setIsFetchingPrice(false);
+      }
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -329,7 +358,9 @@ export function AddAssetDialog({ open, onOpenChange, onAdd }: AddAssetDialogProp
                     placeholder="BTC, ETH, ADA, etc."
                     value={formData.token || ''}
                     onChange={(e) => updateField('token', e.target.value)}
+                    onBlur={handleTokenBlur}
                   />
+                  {isFetchingPrice && <span className="text-xs text-muted-foreground ml-2">Fetching price...</span>}
                 </div>
 
                 <div>

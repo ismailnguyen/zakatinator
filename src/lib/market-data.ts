@@ -143,3 +143,38 @@ export async function fetchLatestMetalPrices(
     lastUpdated: new Date().toISOString(),
   };
 }
+
+export async function fetchCryptoPrice(tokenSymbol: string, currency: string): Promise<number | null> {
+  if (!tokenSymbol) return null;
+  const symbol = tokenSymbol.toUpperCase();
+  const curr = currency.toUpperCase();
+
+  // Try direct pair first (e.g. BTCEUR)
+  try {
+    const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}${curr}`);
+    if (response.ok) {
+      const data = await response.json();
+      return parseFloat(data.price);
+    }
+  } catch (e) {
+    console.warn(`Failed to fetch direct pair ${symbol}${curr}`, e);
+  }
+
+  // Fallback: Try USDT pair (e.g. BTCUSDT) and we might need conversion if we had rates, 
+  // but for now let's just try to return the price if the user is okay with USD/USDT or if we can't find the specific currency.
+  // Actually, if direct pair fails, it might be better to return null or try USDT and let the UI handle conversion if it had access to rates.
+  // Given the current architecture, let's try USDT as a fallback only if the target currency is USD-like.
+  if (curr === 'USD') {
+    try {
+      const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${symbol}USDT`);
+      if (response.ok) {
+        const data = await response.json();
+        return parseFloat(data.price);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  return null;
+}

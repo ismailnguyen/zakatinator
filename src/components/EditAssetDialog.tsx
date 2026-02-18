@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { AssetType, InventoryItem, Currency, Ownership } from "@/types/zakat";
 import { useToast } from "@/hooks/use-toast";
+import { fetchCryptoPrice } from "@/lib/market-data";
+import { getSettings, getDefaultSettings } from "@/lib/store";
 
 interface EditAssetDialogProps {
   open: boolean;
@@ -63,6 +65,34 @@ export function EditAssetDialog({ open, onOpenChange, item, onSave }: EditAssetD
   const updateField = <K extends keyof InventoryItem>(key: K, value: InventoryItem[K]) => {
     if (formData) {
       setFormData(prev => prev ? { ...prev, [key]: value } : null);
+    }
+  };
+
+  const [isFetchingPrice, setIsFetchingPrice] = useState(false);
+
+  const handleTokenBlur = async () => {
+    if (formData && formData.token && formData.type === 'CRYPTO') {
+      setIsFetchingPrice(true);
+      try {
+        const settings = getSettings() || getDefaultSettings();
+        const currency = formData.currency || settings.baseCurrency;
+        const price = await fetchCryptoPrice(formData.token, currency);
+        if (price) {
+          updateField('pricePerToken', price);
+          // Also set currency if not set
+          if (!formData.currency) {
+            updateField('currency', currency);
+          }
+          toast({
+            title: "Price Updated",
+            description: `Fetched current price for ${formData.token}: ${price} ${currency}`,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch price", error);
+      } finally {
+        setIsFetchingPrice(false);
+      }
     }
   };
 
@@ -277,7 +307,9 @@ export function EditAssetDialog({ open, onOpenChange, item, onSave }: EditAssetD
                     placeholder="BTC, ETH, ADA, etc."
                     value={formData.token || ''}
                     onChange={(e) => updateField('token', e.target.value)}
+                    onBlur={handleTokenBlur}
                   />
+                  {isFetchingPrice && <span className="text-xs text-muted-foreground ml-2">Fetching price...</span>}
                 </div>
 
                 <div>
