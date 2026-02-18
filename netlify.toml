@@ -15,6 +15,6 @@
 # SPA fallback so client-side routes work on refresh/direct links
 [[redirects]]
   from = "/*"
-  to = "/welcome"
+  to = "/index.html"
   status = 200
 
