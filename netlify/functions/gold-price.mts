@@ -2,8 +2,8 @@ import type { Context, Config } from "@netlify/functions";
 
 export default async (req: Request, context: Context) => {
     const url = new URL(req.url);
-    const currencyParam = url.searchParams.get("currency") || "USD";
-    const currency = currencyParam.split("/").pop() || "USD"; // Handle cases like "USD" or "dbXRates/USD" if splat sends it weirdly
+    const pathParts = url.pathname.split('/');
+    const currency = pathParts[pathParts.length - 1] || "USD";
 
     // The external API URL
     const externalApiUrl = `https://data-asg.goldprice.org/dbXRates/${currency}`;
