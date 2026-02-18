@@ -1,2 +1,2 @@
 /api/gold-price/* https://data-asg.goldprice.org/dbXRates/:splat 200
-/* /index.html 200
+/* /welcome 200
